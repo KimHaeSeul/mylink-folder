@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { dummyLinks, type Link as LinkType } from "@/data/links";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -37,7 +39,7 @@ export default function Page() {
     }
   };
 
-  const handleAddLink = (e: React.FormEvent) => {
+  const handleAddLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -45,12 +47,12 @@ export default function Page() {
     const trimmedUrl = newUrl.trim();
 
     if (!trimmedTitle) {
-      setError("Enter a Title");
+      setError("Please enter a valid title");
       return;
     }
 
     if (!trimmedUrl) {
-      setError("Enter the URL");
+      setError("Please enter a valid URL");
       return;
     }
 
@@ -62,21 +64,34 @@ export default function Page() {
     // A comprehensive regex to validate the URL structure (including lazy inputs)
     const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/i;
     if (!urlPattern.test(finalUrl)) {
-      setError("Please enter a valid URL (e.g. google.com or https://google.com).");
+      setError("Please enter a valid URL");
       return;
     }
 
-    const newLink: LinkType = {
-      id: Date.now().toString(),
-      title: trimmedTitle,
-      url: finalUrl,
-      updatedAt: new Date().toISOString(),
-    };
+    try {
+      // Save link to Firestore
+      const docRef = await addDoc(collection(db, "users/anonymous/links"), {
+        title: trimmedTitle,
+        url: finalUrl,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
 
-    setLinks([...links, newLink]);
-    setNewTitle("");
-    setNewUrl("");
-    setIsDialogOpen(false);
+      const newLink: LinkType = {
+        id: docRef.id,
+        title: trimmedTitle,
+        url: finalUrl,
+        updatedAt: new Date().toISOString(),
+      };
+
+      setLinks([...links, newLink]);
+      setNewTitle("");
+      setNewUrl("");
+      setIsDialogOpen(false);
+    } catch (err) {
+      console.error("Error adding link to Firestore: ", err);
+      setError("Failed to save link. Please try again.");
+    }
   };
 
   return (
