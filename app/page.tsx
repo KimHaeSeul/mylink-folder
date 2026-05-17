@@ -73,7 +73,7 @@ export default function Page() {
       const docRef = await addDoc(collection(db, "users/anonymous/links"), {
         title: trimmedTitle,
         url: finalUrl,
-        createdAt: serverTimestamp(),
+        clickCount: 0,
         updatedAt: serverTimestamp(),
       });
 
@@ -81,6 +81,7 @@ export default function Page() {
         id: docRef.id,
         title: trimmedTitle,
         url: finalUrl,
+        clickCount: 0,
         updatedAt: new Date().toISOString(),
       };
 
