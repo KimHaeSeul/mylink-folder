@@ -26,20 +26,49 @@ export default function Page() {
   const [newTitle, setNewTitle] = useState("");
   const [newUrl, setNewUrl] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleOpenChange = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setError("");
+      setNewTitle("");
+      setNewUrl("");
+    }
+  };
 
   const handleAddLink = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle || !newUrl) return;
+    setError("");
 
-    // Validate URL scheme if missing
-    let finalUrl = newUrl;
+    const trimmedTitle = newTitle.trim();
+    const trimmedUrl = newUrl.trim();
+
+    if (!trimmedTitle) {
+      setError("Enter a Title");
+      return;
+    }
+
+    if (!trimmedUrl) {
+      setError("Enter the URL");
+      return;
+    }
+
+    let finalUrl = trimmedUrl;
     if (!/^https?:\/\//i.test(finalUrl)) {
       finalUrl = `https://${finalUrl}`;
     }
 
+    // A comprehensive regex to validate the URL structure (including lazy inputs)
+    const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/i;
+    if (!urlPattern.test(finalUrl)) {
+      setError("Please enter a valid URL (e.g. google.com or https://google.com).");
+      return;
+    }
+
     const newLink: LinkType = {
       id: Date.now().toString(),
-      title: newTitle,
+      title: trimmedTitle,
       url: finalUrl,
       updatedAt: new Date().toISOString(),
     };
@@ -115,7 +144,7 @@ export default function Page() {
 
         {/* Add Link Dialog at the bottom */}
         <div className="w-full mt-2">
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
             <DialogTrigger render={
               <Button variant="outline" className="w-full border-dashed border-2 py-6 rounded-xl hover:scale-102 hover:shadow-md active:scale-98 transition-all">
                 <HugeiconsIcon icon={PlusSignIcon} size={16} className="mr-2" />
@@ -130,6 +159,11 @@ export default function Page() {
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddLink}>
+                {error && (
+                  <div className="mt-2 text-destructive text-xs font-semibold bg-destructive/10 border border-destructive/20 p-3 rounded-lg text-center">
+                    {error}
+                  </div>
+                )}
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
                     <Label htmlFor="title">Title</Label>
@@ -138,23 +172,21 @@ export default function Page() {
                       placeholder="e.g. My Awesome Blog"
                       value={newTitle}
                       onChange={(e) => setNewTitle(e.target.value)}
-                      required
                     />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="url">URL</Label>
                     <Input
                       id="url"
-                      type="url"
-                      placeholder="e.g. https://example.com"
+                      type="text"
+                      placeholder="e.g. google.com"
                       value={newUrl}
                       onChange={(e) => setNewUrl(e.target.value)}
-                      required
                     />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button type="button" variant="secondary" onClick={() => setIsDialogOpen(false)}>
+                  <Button type="button" variant="secondary" onClick={() => handleOpenChange(false)}>
                     Cancel
                   </Button>
                   <Button type="submit">Save Link</Button>
