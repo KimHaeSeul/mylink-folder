@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { dummyLinks, type Link as LinkType } from "@/data/links";
+import { type Link as LinkType } from "@/data/links";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -22,13 +22,46 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Page() {
-  const [links, setLinks] = useState<LinkType[]>(dummyLinks);
+  const [links, setLinks] = useState<LinkType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [newTitle, setNewTitle] = useState("");
   const [newUrl, setNewUrl] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const q = query(
+      collection(db, "users/anonymous/links"),
+      orderBy("createdAt", "desc")
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const fetchedLinks: LinkType[] = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            title: data.title || "",
+            url: data.url || "",
+            clickCount: data.clickCount || 0,
+            createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+          };
+        });
+        setLinks(fetchedLinks);
+        setIsLoading(false);
+      },
+      (err) => {
+        console.error("Error fetching links: ", err);
+        setIsLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
 
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
@@ -74,18 +107,9 @@ export default function Page() {
         title: trimmedTitle,
         url: finalUrl,
         clickCount: 0,
-        updatedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
       });
 
-      const newLink: LinkType = {
-        id: docRef.id,
-        title: trimmedTitle,
-        url: finalUrl,
-        clickCount: 0,
-        updatedAt: new Date().toISOString(),
-      };
-
-      setLinks([...links, newLink]);
       setNewTitle("");
       setNewUrl("");
       setIsDialogOpen(false);
@@ -110,10 +134,23 @@ export default function Page() {
 
       {/* Link List */}
       <div className="flex w-full max-w-md flex-col gap-4">
-        {links.map((link) => {
-          let hostname = "example.com";
-          try {
-            hostname = new URL(link.url).hostname;
+        {isLoading ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i} className="overflow-hidden shadow-sm">
+              <CardContent className="flex items-center gap-4 p-4">
+                <Skeleton className="h-10 w-10 rounded-lg" />
+                <div className="flex flex-1 items-center justify-between">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-4 w-4 rounded-full" />
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          links.map((link) => {
+            let hostname = "example.com";
+            try {
+              hostname = new URL(link.url).hostname;
           } catch (e) {
             // Ignore invalid URLs
           }
@@ -151,8 +188,9 @@ export default function Page() {
               </Card>
             </Link>
           );
-        })}
-        {links.length === 0 && (
+        })
+        )}
+        {!isLoading && links.length === 0 && (
           <div className="text-center text-muted-foreground py-8">
             No links added yet. Click "Add Link" to get started.
           </div>
