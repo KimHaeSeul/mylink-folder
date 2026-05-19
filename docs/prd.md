@@ -35,7 +35,7 @@
   - Fields: `displayName`, `bio`, `email`, `photoURL` (Google Profile), `createdAt`
 - **링크 정보 (Sub-collection: `users/{uid}/links`)**
   - Document ID: 자동 생성
-  - Fields: `title`, `url`, `clickCount`, `createdAt`
+  - Fields: `title`, `url`, `clickCount`, `createdAt`, `updatedAt`
 
 ### 4.2 인라인 편집 UI
 - 링크 아이템 클릭 시 텍스트가 입력 필드(Input)로 전환되어 즉시 수정 가능.

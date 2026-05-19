@@ -4,6 +4,7 @@ export interface Link {
   url: string;
   clickCount: number;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export const dummyLinks: Link[] = [
