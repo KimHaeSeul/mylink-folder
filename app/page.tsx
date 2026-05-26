@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, setDoc } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, setDoc, getDoc, getDocs, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
 import { type Link as LinkType } from "@/data/links";
@@ -34,6 +34,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+
+function isValidUrl(urlString: string): boolean {
+  try {
+    const url = new URL(urlString);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+    const hostname = url.hostname;
+    if (!hostname) return false;
+    if (hostname !== "localhost" && !hostname.includes(".")) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function EditableLinkCard({
   link,
@@ -66,8 +79,7 @@ function EditableLinkCard({
       finalUrl = `https://${finalUrl}`;
     }
 
-    const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/i;
-    if (!urlPattern.test(finalUrl)) {
+    if (!isValidUrl(finalUrl)) {
       setError("Please enter a valid URL");
       return;
     }
@@ -145,6 +157,12 @@ function EditableLinkCard({
 }
 
 export default function Page() {
+  interface ProfileType {
+    username: string;
+    name: string;
+    bio: string;
+  }
+
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [links, setLinks] = useState<LinkType[]>([]);
@@ -154,6 +172,18 @@ export default function Page() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [error, setError] = useState("");
 
+  const [profile, setProfile] = useState<ProfileType | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
+  const [editUsername, setEditUsername] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [isUsernameChecked, setIsUsernameChecked] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
@@ -162,16 +192,239 @@ export default function Page() {
       // 로그인 시 유저 프로필 정보를 Firestore에 저장/업데이트
       if (currentUser) {
         const userRef = doc(db, "users", currentUser.uid);
+        const userDoc = await getDoc(userRef);
+        let profile = userDoc.exists() ? userDoc.data()?.profile : null;
+
+        // profile 필드가 없거나 username이 비어있는 경우 초기화
+        if (!profile || !profile.username) {
+          const emailPrefix = currentUser.email?.split("@")[0] || "user";
+          // 영문 소문자, 숫자, 언더바(_), 마침표(.)만 허용
+          let baseUsername = emailPrefix.toLowerCase().replace(/[^a-z0-9_.]/g, "");
+          if (baseUsername.length < 3) {
+            baseUsername = "user." + baseUsername;
+          }
+          if (baseUsername.length > 20) {
+            baseUsername = baseUsername.slice(0, 20);
+          }
+
+          let finalUsername = baseUsername;
+          let isUnique = false;
+          let attempts = 0;
+
+          while (!isUnique && attempts < 10) {
+            const q = query(
+              collection(db, "users"),
+              where("profile.username", "==", finalUsername)
+            );
+            const querySnapshot = await getDocs(q);
+            
+            // 본인을 제외한 다른 유저가 이 username을 쓰고 있는지 체크
+            const duplicate = querySnapshot.docs.find(doc => doc.id !== currentUser.uid);
+
+            if (!duplicate) {
+              isUnique = true;
+            } else {
+              attempts++;
+              // 중복일 시 4자리 랜덤 숫자 덧붙임
+              const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+              finalUsername = `${baseUsername.slice(0, 15)}_${randomSuffix}`;
+            }
+          }
+
+          profile = {
+            username: finalUsername,
+            name: currentUser.displayName || emailPrefix,
+            bio: "Minimalist Link Management",
+          };
+        }
+
         await setDoc(userRef, {
-          displayName: currentUser.email?.split("@")[0] || currentUser.displayName || "",
+          displayName: currentUser.displayName || currentUser.email?.split("@")[0] || "",
           photoURL: currentUser.photoURL || "",
           email: currentUser.email || "",
+          profile: profile,
           updatedAt: serverTimestamp(),
         }, { merge: true });
       }
     });
     return () => unsubscribe();
   }, []);
+
+  // 유저 프로필 실시간 구독
+  useEffect(() => {
+    if (!user) {
+      setProfile(null);
+      setProfileLoading(false);
+      return;
+    }
+
+    setProfileLoading(true);
+    const userRef = doc(db, "users", user.uid);
+    const unsubscribe = onSnapshot(
+      userRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.profile) {
+            setProfile({
+              username: data.profile.username || "",
+              name: data.profile.name || "",
+              bio: data.profile.bio || "",
+            });
+          }
+        }
+        setProfileLoading(false);
+      },
+      (err) => {
+        console.error("Error fetching user profile:", err);
+        setProfileLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // 프로필 수정 다이얼로그 열릴 때 폼 필드 로드
+  useEffect(() => {
+    if (isProfileEditOpen && profile) {
+      setEditUsername(profile.username);
+      setEditName(profile.name);
+      setEditBio(profile.bio);
+      setUsernameError("");
+      setIsUsernameChecked(true);
+      setProfileError("");
+    }
+  }, [isProfileEditOpen, profile]);
+
+  // 한국어 키보드 자판 → QWERTY 영문 변환 맵
+  const KO_TO_EN_MAP: Record<string, string> = {
+    "ㅂ": "q", "ㅈ": "w", "ㄷ": "e", "ㄱ": "r", "ㅅ": "t",
+    "ㅛ": "y", "ㅕ": "u", "ㅑ": "i", "ㅐ": "o", "ㅔ": "p",
+    "ㅁ": "a", "ㄴ": "s", "ㅇ": "d", "ㄹ": "f", "ㅎ": "g",
+    "ㅗ": "h", "ㅓ": "j", "ㅏ": "k", "ㅣ": "l",
+    "ㅋ": "z", "ㅌ": "x", "ㅊ": "c", "ㅍ": "v",
+    "ㅠ": "b", "ㅜ": "n", "ㅡ": "m",
+    // 쌍자음 / 이중모음 (shift)
+    "ㅃ": "q", "ㅉ": "w", "ㄸ": "e", "ㄲ": "r", "ㅆ": "t",
+    "ㅒ": "o", "ㅖ": "p",
+  };
+
+  const convertKoreanToEnglish = (str: string): string =>
+    str.split("").map((ch) => KO_TO_EN_MAP[ch] ?? ch).join("");
+
+  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const converted = convertKoreanToEnglish(e.target.value);
+    const value = converted.toLowerCase().replace(/[^a-z0-9_.]/g, "");
+    setEditUsername(value);
+    setIsUsernameChecked(false);
+    setUsernameError("");
+  };
+
+  const handleUsernameCompositionEnd = (e: React.CompositionEvent<HTMLInputElement>) => {
+    // IME 조합 완료 후 한글을 영문으로 변환
+    const converted = convertKoreanToEnglish((e.target as HTMLInputElement).value);
+    const value = converted.toLowerCase().replace(/[^a-z0-9_.]/g, "");
+    setEditUsername(value);
+    setIsUsernameChecked(false);
+    setUsernameError("");
+  };
+
+  const handleCheckUsername = async () => {
+    if (!user) return;
+    setUsernameError("");
+    setIsCheckingUsername(true);
+
+    const trimmed = editUsername.trim();
+    if (trimmed.length < 3) {
+      setUsernameError("Username은 3자 이상이어야 합니다.");
+      setIsCheckingUsername(false);
+      return;
+    }
+    if (trimmed.length > 20) {
+      setUsernameError("Username은 20자 이하이어야 합니다.");
+      setIsCheckingUsername(false);
+      return;
+    }
+
+    if (profile && trimmed === profile.username) {
+      setIsUsernameChecked(true);
+      setIsCheckingUsername(false);
+      return;
+    }
+
+    try {
+      const q = query(
+        collection(db, "users"),
+        where("profile.username", "==", trimmed)
+      );
+      const querySnapshot = await getDocs(q);
+      const duplicate = querySnapshot.docs.find((doc) => doc.id !== user.uid);
+
+      if (duplicate) {
+        setUsernameError("이미 사용 중인 Username입니다.");
+        setIsUsernameChecked(false);
+      } else {
+        setIsUsernameChecked(true);
+        setUsernameError("");
+        toast("사용 가능한 Username입니다!");
+      }
+    } catch (err) {
+      console.error(err);
+      setUsernameError("중복 확인 중 오류가 발생했습니다.");
+    } finally {
+      setIsCheckingUsername(false);
+    }
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setProfileError("");
+
+    const finalUsername = editUsername.trim();
+    const finalName = editName.trim();
+    const finalBio = editBio.trim();
+
+    if (!finalUsername || !finalName) {
+      setProfileError("Username과 이름을 모두 입력해주세요.");
+      return;
+    }
+
+    if (finalUsername.length < 3 || finalUsername.length > 20) {
+      setProfileError("Username은 3자 이상 20자 이하로 입력해주세요.");
+      return;
+    }
+
+    if (!isUsernameChecked) {
+      setProfileError("Username 중복 확인을 먼저 해주세요.");
+      return;
+    }
+
+    setIsSavingProfile(true);
+    try {
+      const userRef = doc(db, "users", user.uid);
+      await setDoc(
+        userRef,
+        {
+          profile: {
+            username: finalUsername,
+            name: finalName,
+            bio: finalBio,
+          },
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      setIsProfileEditOpen(false);
+      toast("프로필이 성공적으로 업데이트되었습니다!");
+    } catch (err) {
+      console.error(err);
+      setProfileError("프로필 저장 중 오류가 발생했습니다. 다시 시도해주세요.");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   useEffect(() => {
     if (!user) {
@@ -270,8 +523,7 @@ export default function Page() {
       finalUrl = `https://${finalUrl}`;
     }
 
-    const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/i;
-    if (!urlPattern.test(finalUrl)) {
+    if (!isValidUrl(finalUrl)) {
       setError("Please enter a valid URL");
       return;
     }
@@ -346,21 +598,21 @@ export default function Page() {
                     <img src={user.photoURL} alt="Profile" className="h-8 w-8 rounded-full flex-shrink-0" />
                   ) : (
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold flex-shrink-0">
-                      {user.email?.split("@")[0]?.[0]?.toUpperCase() || "U"}
+                      {profile?.name?.[0]?.toUpperCase() || user.email?.split("@")[0]?.[0]?.toUpperCase() || "U"}
                     </div>
                   )}
-                  <span className="font-medium truncate">{user.email?.split("@")[0] || "User"}</span>
+                  <span className="font-medium truncate">{profile?.name || user.email?.split("@")[0] || "User"}</span>
                 </DropdownMenuLabel>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem render={
-                <a href={`/${user.uid}`} target="_blank" rel="noopener noreferrer" className="cursor-pointer" />
+                <a href={`/${profile?.username || user.uid}`} target="_blank" rel="noopener noreferrer" className="cursor-pointer" />
               }>
                 내 페이지 미리보기
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
-                  navigator.clipboard.writeText(`${window.location.origin}/${user.uid}`);
+                  navigator.clipboard.writeText(`${window.location.origin}/${profile?.username || user.uid}`);
                   toast("링크가 복사되었습니다!");
                 }}
                 className="cursor-pointer"
@@ -387,14 +639,143 @@ export default function Page() {
               <img src={user.photoURL} alt="Profile" className="h-20 w-20 rounded-full ring-4 ring-background shadow-xl" />
             ) : (
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted text-2xl font-bold text-muted-foreground ring-4 ring-background shadow-xl">
-                {user.email?.split("@")[0]?.[0]?.toUpperCase() || "U"}
+                {profile?.name?.[0]?.toUpperCase() || user.email?.split("@")[0]?.[0]?.toUpperCase() || "U"}
               </div>
             )}
-            <div className="text-center">
-              <h1 className="text-2xl font-bold tracking-tight">@{user.email?.split("@")[0] || "User"}</h1>
-              <p className="text-sm text-muted-foreground">Minimalist Link Management</p>
+            <div className="text-center flex flex-col items-center">
+              <h1 className="text-2xl font-bold tracking-tight">
+                {profileLoading ? (
+                  <Skeleton className="h-8 w-32" />
+                ) : (
+                  profile?.name || user.displayName || user.email?.split("@")[0] || "User"
+                )}
+              </h1>
+              <span className="text-sm text-muted-foreground mt-1 block">
+                {profileLoading ? (
+                  <Skeleton className="h-4 w-24 mt-1" />
+                ) : (
+                  `@${profile?.username || user.email?.split("@")[0]}`
+                )}
+              </span>
+              <span className="text-sm text-muted-foreground mt-0.5 block">
+                {profileLoading ? (
+                  <Skeleton className="h-4 w-40 mt-1" />
+                ) : (
+                  profile?.bio || "Minimalist Link Management"
+                )}
+              </span>
+              
+              {/* 프로필 수정 버튼 */}
+              <div className="mt-3">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="rounded-full gap-1.5 text-xs h-8 px-3 transition-all hover:scale-105 active:scale-95 shadow-sm"
+                  onClick={() => setIsProfileEditOpen(true)}
+                  disabled={profileLoading}
+                >
+                  <span>프로필 수정</span>
+                  <span className="text-xs">✎</span>
+                </Button>
+              </div>
             </div>
           </div>
+
+          {/* Profile Edit Dialog */}
+          <Dialog open={isProfileEditOpen} onOpenChange={(open) => {
+            setIsProfileEditOpen(open);
+            if (!open) {
+              setProfileError("");
+              setUsernameError("");
+            }
+          }}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>프로필 수정</DialogTitle>
+                <DialogDescription>
+                  공개 페이지에 노출될 프로필 정보를 수정합니다.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSaveProfile} className="space-y-4">
+                {profileError && (
+                  <div className="text-destructive text-xs font-semibold bg-destructive/10 border border-destructive/20 p-3 rounded-lg text-center">
+                    {profileError}
+                  </div>
+                )}
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-username">Username (고유 주소용)</Label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">@</span>
+                      <Input
+                        id="edit-username"
+                        className="pl-7"
+                        placeholder="username"
+                        value={editUsername}
+                        onChange={handleUsernameChange}
+                        onCompositionEnd={handleUsernameCompositionEnd}
+                        inputMode="url"
+                        lang="en"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="none"
+                        spellCheck={false}
+                      />
+                    </div>
+                    <Button 
+                      type="button" 
+                      variant="secondary" 
+                      onClick={handleCheckUsername}
+                      disabled={isCheckingUsername || isUsernameChecked || !editUsername}
+                    >
+                      {isCheckingUsername ? "확인 중..." : isUsernameChecked ? "확인 완료" : "중복 확인"}
+                    </Button>
+                  </div>
+                  {usernameError && (
+                    <p className="text-destructive text-xs mt-0.5">{usernameError}</p>
+                  )}
+                  {isUsernameChecked && !usernameError && editUsername && (
+                    <p className="text-green-600 text-xs mt-0.5">✓ 사용 가능한 Username입니다.</p>
+                  )}
+                  <p className="text-[11px] text-muted-foreground">
+                    영문 소문자, 숫자, 언더바(_), 마침표(.)만 가능하며 고유한 주소로 사용됩니다.
+                  </p>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-name">이름</Label>
+                  <Input
+                    id="edit-name"
+                    placeholder="이름 또는 닉네임"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    maxLength={30}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-bio">소개글</Label>
+                  <Input
+                    id="edit-bio"
+                    placeholder="나를 설명하는 한 줄 소개글"
+                    value={editBio}
+                    onChange={(e) => setEditBio(e.target.value)}
+                    maxLength={80}
+                  />
+                </div>
+
+                <DialogFooter className="pt-2">
+                  <Button type="button" variant="secondary" onClick={() => setIsProfileEditOpen(false)}>
+                    취소
+                  </Button>
+                  <Button type="submit" disabled={isSavingProfile || (editUsername !== profile?.username && !isUsernameChecked)}>
+                    {isSavingProfile ? "저장 중..." : "저장"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
 
           {/* Link List */}
           <div className="flex w-full max-w-md flex-col gap-4">

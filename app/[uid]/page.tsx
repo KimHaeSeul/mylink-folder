@@ -7,7 +7,9 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
   query,
+  where,
   orderBy,
   onSnapshot,
 } from "firebase/firestore";
@@ -22,6 +24,11 @@ interface UserProfile {
   displayName: string;
   photoURL: string;
   email: string;
+  profile?: {
+    username: string;
+    name: string;
+    bio: string;
+  };
 }
 
 export default function PublicProfilePage({
@@ -31,6 +38,7 @@ export default function PublicProfilePage({
 }) {
   const { uid } = use(params);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [actualUid, setActualUid] = useState<string | null>(null);
   const [links, setLinks] = useState<LinkType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -38,24 +46,49 @@ export default function PublicProfilePage({
   // 유저 프로필 fetch
   useEffect(() => {
     const fetchProfile = async () => {
-      const userRef = doc(db, "users", uid);
-      const userSnap = await getDoc(userRef);
-      if (!userSnap.exists()) {
+      try {
+        // 1. 먼저 username 필드로 검색 시도
+        const q = query(
+          collection(db, "users"),
+          where("profile.username", "==", uid)
+        );
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          const userDoc = querySnapshot.docs[0];
+          setProfile(userDoc.data() as UserProfile);
+          setActualUid(userDoc.id);
+          return;
+        }
+
+        // 2. 검색 결과가 없으면 하위 호환성을 위해 ID(uid) 매칭 시도
+        const userRef = doc(db, "users", uid);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists()) {
+          setProfile(userSnap.data() as UserProfile);
+          setActualUid(userSnap.id);
+          return;
+        }
+
+        // 3. 둘 다 없으면 notFound
         setNotFound(true);
         setIsLoading(false);
-        return;
+      } catch (err) {
+        console.error("Error fetching user profile:", err);
+        setNotFound(true);
+        setIsLoading(false);
       }
-      setProfile(userSnap.data() as UserProfile);
     };
     fetchProfile();
   }, [uid]);
 
   // 링크 목록 실시간 구독
   useEffect(() => {
-    if (notFound) return;
+    if (!actualUid || notFound) return;
 
     const q = query(
-      collection(db, `users/${uid}/links`),
+      collection(db, `users/${actualUid}/links`),
       orderBy("createdAt", "desc")
     );
 
@@ -85,7 +118,7 @@ export default function PublicProfilePage({
     );
 
     return () => unsubscribe();
-  }, [uid, notFound]);
+  }, [actualUid, notFound]);
 
   if (isLoading) {
     return (
@@ -154,14 +187,21 @@ export default function PublicProfilePage({
           />
         ) : (
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted text-2xl font-bold text-muted-foreground ring-4 ring-background shadow-xl">
-            {profile?.displayName?.[0]?.toUpperCase() || "U"}
+            {profile?.profile?.name?.[0]?.toUpperCase() || profile?.displayName?.[0]?.toUpperCase() || "U"}
           </div>
         )}
-        <div className="text-center">
+        <div className="text-center flex flex-col items-center">
           <h1 className="text-2xl font-bold tracking-tight">
-            @{profile?.displayName || "User"}
+            {profile?.profile?.name || profile?.displayName || "User"}
           </h1>
-          <p className="text-sm text-muted-foreground">Minimalist Link Management</p>
+          {(profile?.profile?.username || profile?.email) && (
+            <p className="text-sm text-muted-foreground mt-1">
+              @{profile?.profile?.username || profile?.email?.split("@")[0]}
+            </p>
+          )}
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {profile?.profile?.bio || "Minimalist Link Management"}
+          </p>
         </div>
       </div>
 
