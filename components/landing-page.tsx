@@ -3,164 +3,38 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
 import { 
   Sparkles, 
   Check, 
   Globe, 
   LayoutGrid, 
   TrendingUp, 
-  Plus, 
-  Trash2, 
-  Pencil,
-  ArrowRight,
   Monitor,
   Smartphone
 } from "lucide-react";
-
-// URL 유효성 검사 함수
-function isValidUrl(urlString: string): boolean {
-  try {
-    const url = new URL(urlString);
-    if (url.protocol !== "http:" && url.protocol !== "https:") return false;
-    const hostname = url.hostname;
-    if (!hostname) return false;
-    if (hostname !== "localhost" && !hostname.includes(".")) return false;
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-interface VirtualLink {
-  id: string;
-  title: string;
-  url: string;
-  clickCount: number;
-}
 
 interface LandingPageProps {
   onLogin: () => Promise<void>;
 }
 
 export default function LandingPage({ onLogin }: LandingPageProps) {
-  // 가상 링크 상태 관리 (시뮬레이터용)
-  const [virtualLinks, setVirtualLinks] = useState<VirtualLink[]>([
-    { id: "1", title: "인스타그램 📸", url: "https://instagram.com", clickCount: 142 },
-    { id: "2", title: "나의 개발 블로그 💻", url: "https://medium.com", clickCount: 88 },
-    { id: "3", title: "포트폴리오 보러가기 💼", url: "https://github.com", clickCount: 205 },
-  ]);
-
-  const [inputTitle, setInputTitle] = useState("");
-  const [inputUrl, setInputUrl] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editUrl, setEditUrl] = useState("");
   const [showStickyFooter, setShowStickyFooter] = useState(false);
 
   // 스크롤 감지 레퍼런스
   const heroRef = useRef<HTMLDivElement>(null);
 
-  // 가상 링크 추가 핸들러
-  const handleAddVirtualLink = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmedTitle = inputTitle.trim();
-    const trimmedUrl = inputUrl.trim();
-
-    if (!trimmedTitle || !trimmedUrl) {
-      toast.error("가상 링크의 제목과 URL을 입력해주세요!");
-      return;
-    }
-
-    let finalUrl = trimmedUrl;
-    if (!/^https?:\/\//i.test(finalUrl)) {
-      finalUrl = `https://${finalUrl}`;
-    }
-
-    if (!isValidUrl(finalUrl)) {
-      toast.error("올바른 URL 형식을 입력해주세요. (예: google.com)");
-      return;
-    }
-
-    const newLink: VirtualLink = {
-      id: Date.now().toString(),
-      title: trimmedTitle,
-      url: finalUrl,
-      clickCount: 0,
-    };
-
-    setVirtualLinks([newLink, ...virtualLinks]);
-    setInputTitle("");
-    setInputUrl("");
-    toast.success("가상 스마트폰에 링크가 실시간 추가되었습니다!");
-  };
-
-  // 가상 링크 삭제 핸들러
-  const handleDeleteVirtualLink = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setVirtualLinks(virtualLinks.filter(link => link.id !== id));
-    if (editingId === id) setEditingId(null);
-    toast("가상 링크가 삭제되었습니다.");
-  };
-
-  // 가상 인라인 편집 시작 핸들러
-  const startEditVirtualLink = (link: VirtualLink, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingId(link.id);
-    setEditTitle(link.title);
-    setEditUrl(link.url);
-  };
-
-  // 가상 인라인 편집 저장 핸들러
-  const handleSaveVirtualEdit = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const trimmedTitle = editTitle.trim();
-    const trimmedUrl = editUrl.trim();
-
-    if (!trimmedTitle || !trimmedUrl) {
-      toast.error("제목과 URL을 입력해주세요!");
-      return;
-    }
-
-    let finalUrl = trimmedUrl;
-    if (!/^https?:\/\//i.test(finalUrl)) {
-      finalUrl = `https://${finalUrl}`;
-    }
-
-    if (!isValidUrl(finalUrl)) {
-      toast.error("올바른 URL 형식을 입력해주세요.");
-      return;
-    }
-
-    setVirtualLinks(virtualLinks.map(link => {
-      if (link.id === id) {
-        return { ...link, title: trimmedTitle, url: finalUrl };
-      }
-      return link;
-    }));
-    setEditingId(null);
-    toast.success("인라인 편집이 완료되었습니다!");
-  };
-
-  // 가상 링크 클릭수 증가 핸들러
-  const handleVirtualLinkClick = (id: string) => {
-    setVirtualLinks(virtualLinks.map(link => {
-      if (link.id === id) {
-        return { ...link, clickCount: link.clickCount + 1 };
-      }
-      return link;
-    }));
-    toast("가상 클릭 수가 1 증가했습니다!");
-  };
+  // 정적인 예시 링크 카드 목록 (비주얼 감상용)
+  const mockLinks = [
+    { id: "1", title: "포트폴리오 ✨", url: "github.com" },
+    { id: "2", title: "인스타그램 📸", url: "instagram.com" },
+    { id: "3", title: "기술 블로그 💻", url: "velog.io" },
+  ];
 
   // 스크롤 이벤트로 하단 Sticky Footer 표시 여부 감지
   useEffect(() => {
     const handleScroll = () => {
       if (!heroRef.current) return;
       const heroBottom = heroRef.current.getBoundingClientRect().bottom;
-      // 히어로 섹션 아래가 화면의 중간(혹은 200px 남았을 때) 위로 올라가면 스티키 푸터 켜기
       if (heroBottom < 200) {
         setShowStickyFooter(true);
       } else {
@@ -171,15 +45,6 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  // 도메인 기반 호스트네임 추출
-  const getHostname = (urlStr: string) => {
-    try {
-      return new URL(urlStr).hostname;
-    } catch {
-      return "example.com";
-    }
-  };
 
   return (
     <div className="relative w-full overflow-hidden bg-background text-foreground selection:bg-primary/20">
@@ -207,7 +72,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
         </div>
       </header>
 
-      {/* 2. Hero & Simulator Section */}
+      {/* 2. Hero Section (시뮬레이터 폼 완전히 걷어냄) */}
       <section ref={heroRef} className="relative py-16 sm:py-20 md:py-24 lg:py-28 overflow-hidden">
         {/* 미려하고 세련된 배경 그래디언트 오버레이 */}
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,var(--color-primary-foreground),transparent_50%)] opacity-30" />
@@ -242,12 +107,6 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
                 >
                   무료로 시작하기 🚀
                 </Button>
-                <a 
-                  href="#simulator" 
-                  className="inline-flex h-14 items-center justify-center rounded-full border border-border bg-card px-8 text-sm font-semibold hover:bg-secondary/50 hover:scale-105 active:scale-95 transition-all duration-300"
-                >
-                  직접 체험해보기
-                </a>
               </div>
 
               {/* 통계 배지 */}
@@ -267,169 +126,64 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
               </div>
             </div>
 
-            {/* 우측: 실시간 시뮬레이터 (스마트폰 목업 + 가상 인풋) */}
-            <div id="simulator" className="lg:col-span-5 flex flex-col items-center">
-              <div className="relative w-full max-w-[340px] sm:max-w-[360px] md:max-w-[370px]">
+            {/* 우측: 정적 스마트폰 비주얼 목업 (체험용 인풋 폼 완전히 제거) */}
+            <div className="lg:col-span-5 flex flex-col items-center">
+              <div className="relative w-full max-w-[310px] sm:max-w-[330px]">
                 
-                {/* 1. 가상 링크 추가 컨트롤 패널 (스마트폰 목업 위/옆에 예쁘게 얹혀있는 카드) */}
-                <div className="absolute -top-10 -left-6 sm:-left-12 z-20 w-48 sm:w-56 bg-card/90 backdrop-blur-md p-4 rounded-2xl border border-border shadow-2xl transition-all hover:scale-105">
-                  <span className="text-[11px] font-bold text-primary tracking-wider uppercase block mb-1">실시간 시뮬레이터</span>
-                  <p className="text-[11px] text-muted-foreground mb-3">아래 폼에 URL을 입력하면 폰 목업의 파비콘이 바뀝니다!</p>
-                  
-                  <form onSubmit={handleAddVirtualLink} className="space-y-2">
-                    <div>
-                      <Label htmlFor="v-title" className="text-[10px] font-bold text-foreground">링크 제목</Label>
-                      <Input 
-                        id="v-title" 
-                        value={inputTitle} 
-                        onChange={(e) => setInputTitle(e.target.value)} 
-                        placeholder="예: 나의 트위터" 
-                        className="h-7 text-xs px-2 mt-0.5 rounded-md"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="v-url" className="text-[10px] font-bold text-foreground">도메인 URL</Label>
-                      <Input 
-                        id="v-url" 
-                        value={inputUrl} 
-                        onChange={(e) => setInputUrl(e.target.value)} 
-                        placeholder="예: twitter.com" 
-                        className="h-7 text-xs px-2 mt-0.5 rounded-md"
-                      />
-                    </div>
-                    <Button type="submit" size="sm" className="w-full h-7 text-xs font-bold mt-1 bg-primary/95 rounded-md flex items-center justify-center gap-1">
-                      <Plus className="h-3 w-3" /> 추가하기
-                    </Button>
-                  </form>
-                </div>
-
-                {/* 2. 스마트폰 본체 목업 프레임 */}
-                <div className="relative mx-auto h-[600px] w-full rounded-[42px] border-[10px] border-neutral-900 bg-neutral-950 p-3 shadow-2xl">
+                {/* 스마트폰 본체 목업 프레임 */}
+                <div className="relative mx-auto h-[560px] w-full rounded-[40px] border-[10px] border-neutral-900 bg-neutral-950 p-3 shadow-2xl">
                   {/* 스피커 노치 */}
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 h-5 w-32 bg-neutral-900 rounded-b-2xl z-20 flex items-center justify-center">
-                    <div className="h-1 w-10 bg-neutral-800 rounded-full" />
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 h-5 w-28 bg-neutral-900 rounded-b-2xl z-20 flex items-center justify-center">
+                    <div className="h-1 w-8 bg-neutral-800 rounded-full" />
                   </div>
                   
                   {/* 폰 화면 내부 콘텐츠 영역 */}
-                  <div className="h-full w-full overflow-y-auto rounded-[32px] bg-background px-4 py-8 relative no-scrollbar">
+                  <div className="h-full w-full overflow-hidden rounded-[30px] bg-background px-4 py-8 relative flex flex-col justify-between">
                     
-                    {/* 가상 유저 프로필 헤더 */}
-                    <div className="flex flex-col items-center text-center mt-4 mb-8">
-                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary/80 text-xl font-bold shadow-sm mb-3">
-                        ⚡️
-                      </div>
-                      <h3 className="font-extrabold text-base text-foreground">홍길동 (Gildong)</h3>
-                      <span className="text-xs text-muted-foreground mt-0.5">@gildong_dev</span>
-                      <p className="text-xs text-muted-foreground mt-1 px-4 leading-normal">
-                        심플함을 즐기는 프론트엔드 개발자 🚀
-                      </p>
-                    </div>
-
-                    {/* 가상 링크 리스트 */}
-                    <div className="flex flex-col gap-3">
-                      {virtualLinks.length === 0 ? (
-                        <div className="text-center py-8 text-xs text-muted-foreground">
-                          아직 등록된 링크가 없습니다.<br />위 패널에서 첫 링크를 추가해 보세요!
+                    <div>
+                      {/* 가상 유저 프로필 헤더 */}
+                      <div className="flex flex-col items-center text-center mt-6 mb-8">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary/80 text-xl font-bold shadow-sm mb-3">
+                          ⚡️
                         </div>
-                      ) : (
-                        virtualLinks.map((link) => {
-                          const hostname = getHostname(link.url);
-                          const isEditing = editingId === link.id;
+                        <h3 className="font-extrabold text-sm text-foreground">홍길동 (Gildong)</h3>
+                        <span className="text-[11px] text-muted-foreground mt-0.5">@gildong_dev</span>
+                        <p className="text-[11px] text-muted-foreground mt-1 px-4 leading-normal">
+                          심플함을 즐기는 개발자 🚀
+                        </p>
+                      </div>
 
-                          return (
-                            <div key={link.id} className="relative group">
-                              {isEditing ? (
-                                <Card className="p-3 border-primary/50 shadow-sm bg-card text-left">
-                                  <div className="flex flex-col gap-2">
-                                    <Input 
-                                      value={editTitle} 
-                                      onChange={(e) => setEditTitle(e.target.value)} 
-                                      className="h-7 text-xs" 
-                                      placeholder="제목"
-                                    />
-                                    <Input 
-                                      value={editUrl} 
-                                      onChange={(e) => setEditUrl(e.target.value)} 
-                                      className="h-7 text-xs" 
-                                      placeholder="URL"
-                                    />
-                                    <div className="flex justify-end gap-1.5 mt-1">
-                                      <Button 
-                                        variant="secondary" 
-                                        size="sm" 
-                                        className="h-6 text-[10px] px-2 rounded"
-                                        onClick={() => setEditingId(null)}
-                                      >
-                                        취소
-                                      </Button>
-                                      <Button 
-                                        size="sm" 
-                                        className="h-6 text-[10px] px-2 rounded"
-                                        onClick={(e) => handleSaveVirtualEdit(link.id, e)}
-                                      >
-                                        저장
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </Card>
-                              ) : (
-                                <Card 
-                                  onClick={() => handleVirtualLinkClick(link.id)}
-                                  className="overflow-hidden transition-all duration-300 hover:scale-103 active:scale-98 cursor-pointer shadow-sm border border-border/60 hover:shadow-md hover:border-primary/30"
-                                >
-                                  <CardContent className="flex items-center gap-3 p-3 text-left">
-                                    {/* 실시간 구글 Favicon 파싱 */}
-                                    <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary/60 p-1.5 overflow-hidden">
-                                      <img
-                                        src={
-                                          link.url.includes("blog.naver.com")
-                                            ? "https://blog.naver.com/favicon.ico"
-                                            : `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`
-                                        }
-                                        alt={link.title}
-                                        className="h-full w-full object-contain"
-                                        onError={(e) => {
-                                          (e.target as HTMLImageElement).src = "https://www.google.com/s2/favicons?domain=example.com&sz=128";
-                                        }}
-                                      />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <h4 className="font-semibold text-xs text-foreground truncate">{link.title}</h4>
-                                      <span className="text-[10px] text-muted-foreground flex items-center gap-0.5 mt-0.5">
-                                        <TrendingUp className="h-3 w-3 text-primary/80" />
-                                        <span>클릭 {link.clickCount}회</span>
-                                      </span>
-                                    </div>
-
-                                    {/* 편집/삭제 인터랙티브 버튼 (호버 시 선명하게 노출) */}
-                                    <div className="flex items-center gap-1">
-                                      <button 
-                                        onClick={(e) => startEditVirtualLink(link, e)}
-                                        className="p-1 text-muted-foreground hover:text-primary transition-colors"
-                                        title="인라인 편집 체험"
-                                      >
-                                        <Pencil className="h-3.5 w-3.5" />
-                                      </button>
-                                      <button 
-                                        onClick={(e) => handleDeleteVirtualLink(link.id, e)}
-                                        className="p-1 text-muted-foreground hover:text-destructive transition-colors"
-                                        title="삭제"
-                                      >
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </button>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              )}
-                            </div>
-                          );
-                        })
-                      )}
+                      {/* 예시 고정 링크 리스트 */}
+                      <div className="flex flex-col gap-3">
+                        {mockLinks.map((link) => (
+                          <Card 
+                            key={link.id}
+                            className="overflow-hidden shadow-sm border border-border/60 transition-transform duration-300 hover:scale-102 bg-card"
+                          >
+                            <CardContent className="flex items-center gap-3 p-3 text-left">
+                              {/* 실시간 구글 Favicon 파싱 */}
+                              <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary/60 p-1.5 overflow-hidden">
+                                <img
+                                  src={`https://www.google.com/s2/favicons?domain=${link.url}&sz=128`}
+                                  alt={link.title}
+                                  className="h-full w-full object-contain"
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-xs text-foreground truncate">{link.title}</h4>
+                              </div>
+                              <span className="text-muted-foreground/60 text-xs pl-1">
+                                →
+                              </span>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
                     </div>
 
                     {/* 가상 하단 크레딧 */}
-                    <div className="text-center mt-12 mb-4">
-                      <p className="text-[9px] text-muted-foreground/60 tracking-wider">
+                    <div className="text-center mb-2">
+                      <p className="text-[8px] text-muted-foreground/50 tracking-wider">
                         POWERED BY MY-LINK
                       </p>
                     </div>
@@ -437,7 +191,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
                   </div>
                 </div>
 
-                {/* 3. 모바일 목업 뒤쪽 쉐도우 및 장식 데코 */}
+                {/* 모바일 목업 뒤쪽 쉐도우 및 장식 데코 */}
                 <div className="absolute -bottom-6 -right-6 -z-10 h-32 w-32 bg-primary/10 rounded-full blur-2xl" />
               </div>
             </div>
