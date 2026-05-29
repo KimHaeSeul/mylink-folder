@@ -12,13 +12,17 @@ import {
   where,
   orderBy,
   onSnapshot,
+  updateDoc,
+  increment,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { onAuthStateChanged, type User } from "firebase/auth";
 import { type Link as LinkType } from "@/data/links";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { SimpleEyeIcon } from "@/components/ui/simple-eye-icon";
 
 interface UserProfile {
   displayName: string;
@@ -42,6 +46,29 @@ export default function PublicProfilePage({
   const [links, setLinks] = useState<LinkType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  // Auth 상태 모니터링
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const isOwner = !!currentUser && !!actualUid && currentUser.uid === actualUid;
+
+  const handleLinkClick = async (linkId: string) => {
+    if (!actualUid) return;
+    try {
+      const linkRef = doc(db, `users/${actualUid}/links`, linkId);
+      await updateDoc(linkRef, {
+        clickCount: increment(1),
+      });
+    } catch (err) {
+      console.error("Error updating click count:", err);
+    }
+  };
 
   // 유저 프로필 fetch
   useEffect(() => {
@@ -224,6 +251,7 @@ export default function PublicProfilePage({
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => handleLinkClick(link.id)}
               >
                 <Card className="overflow-hidden transition-all duration-300 hover:scale-102 hover:shadow-md active:scale-98 cursor-pointer group">
                   <CardContent className="flex items-center gap-4 p-4">
@@ -239,9 +267,17 @@ export default function PublicProfilePage({
                       />
                     </div>
                     <div className="flex flex-1 items-center justify-between">
-                      <span className="font-medium text-foreground">
-                        {link.title}
-                      </span>
+                      <div className="flex flex-col items-start gap-1">
+                        <span className="font-medium text-foreground">
+                          {link.title}
+                        </span>
+                        {isOwner && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <SimpleEyeIcon className="h-3.5 w-3.5 text-muted-foreground/80" />
+                            <span>{link.clickCount || 0}</span>
+                          </div>
+                        )}
+                      </div>
                       <span className="text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 text-lg">
                         →
                       </span>

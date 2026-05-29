@@ -1,0 +1,77 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+  
+    // 헬퍼 함수: 사용자가 로그인 상태이고 본인인지 확인
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // 1. 사용자 정보 및 프로필 규칙 (users/{userId})
+    match /users/{userId} {
+      // 읽기는 누구나 가능 (다른 사람이 고유 주소를 통해 프로필을 조회해야 하므로 허용)
+      allow read: if true;
+      
+      // 쓰기(생성/수정)는 로그인된 본인만 가능하며 데이터 규격을 검증
+      allow write: if isOwner(userId)
+                    && (
+                      // profile 필드가 존재할 때만 내부 필드 규격 검증
+                      !('profile' in request.resource.data) || (
+                        request.resource.data.profile is map
+                        && request.resource.data.profile.username is string
+                        && request.resource.data.profile.username.matches('^[a-z0-9_.]+$')
+                        && request.resource.data.profile.username.size() >= 3
+                        && request.resource.data.profile.username.size() <= 20
+                        && request.resource.data.profile.name is string
+                        && request.resource.data.profile.name.size() >= 1
+                        && request.resource.data.profile.name.size() <= 30
+                        && (
+                          !('bio' in request.resource.data.profile)
+                          || request.resource.data.profile.bio == null
+                          || (
+                            request.resource.data.profile.bio is string
+                            && request.resource.data.profile.bio.size() <= 80
+                          )
+                        )
+                      )
+                    );
+    }
+
+    // 2. 사용자 링크 규칙 (users/{userId}/links/{linkId})
+    match /users/{userId}/links/{linkId} {
+      // 읽기는 누구나 가능 (다른 사람이 링크 목록을 조회해야 하므로 허용)
+      allow read: if true;
+      
+      // 삭제는 본인만 가능
+      allow delete: if isOwner(userId);
+      
+      // 생성은 본인만 가능하며 입력값 규격 검증
+      allow create: if isOwner(userId)
+                    && request.resource.data.title is string
+                    && request.resource.data.title.size() >= 1
+                    && request.resource.data.title.size() <= 100
+                    && request.resource.data.url is string
+                    && request.resource.data.url.matches('^https?://.+')
+                    && (
+                      !('clickCount' in request.resource.data)
+                      || request.resource.data.clickCount is int
+                    );
+
+      // 수정(update)은 본인이 직접 변경하거나, 일반 방문자가 clickCount만 1 증가시키는 경우 허용
+      allow update: if (isOwner(userId)
+                        && request.resource.data.title is string
+                        && request.resource.data.title.size() >= 1
+                        && request.resource.data.title.size() <= 100
+                        && request.resource.data.url is string
+                        && request.resource.data.url.matches('^https?://.+')
+                        && (
+                          !('clickCount' in request.resource.data)
+                          || request.resource.data.clickCount is int
+                        ))
+                    || (
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clickCount'])
+                      && request.resource.data.clickCount == resource.data.clickCount + 1
+                    );
+    }
+  }
+}

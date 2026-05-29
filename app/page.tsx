@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowRight01Icon, PlusSignIcon } from "@hugeicons/core-free-icons";
+import { SimpleEyeIcon } from "@/components/ui/simple-eye-icon";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -148,7 +149,13 @@ function EditableLinkCard({
           />
         </div>
         <div className="flex flex-1 items-center justify-between">
-          <span className="font-medium text-foreground">{link.title}</span>
+          <div className="flex flex-col items-start gap-1">
+            <span className="font-medium text-foreground">{link.title}</span>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <SimpleEyeIcon className="h-3.5 w-3.5 text-muted-foreground/80" />
+              <span>{link.clickCount || 0}</span>
+            </div>
+          </div>
           <span className="text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 text-lg">✎</span>
         </div>
       </CardContent>
@@ -253,6 +260,7 @@ export default function Page() {
   // 유저 프로필 실시간 구독
   useEffect(() => {
     if (!user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setProfile(null);
       setProfileLoading(false);
       return;
@@ -287,6 +295,7 @@ export default function Page() {
   // 프로필 수정 다이얼로그 열릴 때 폼 필드 로드
   useEffect(() => {
     if (isProfileEditOpen && profile) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setEditUsername(profile.username);
       setEditName(profile.name);
       setEditBio(profile.bio);
@@ -428,6 +437,7 @@ export default function Page() {
 
   useEffect(() => {
     if (!user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLinks([]);
       setIsLoading(false);
       return;
@@ -605,6 +615,11 @@ export default function Page() {
                 </DropdownMenuLabel>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
+              <DropdownMenuItem render={
+                <Link href="/stats" className="cursor-pointer w-full" />
+              }>
+                통계 대시보드
+              </DropdownMenuItem>
               <DropdownMenuItem render={
                 <a href={`/${profile?.username || user.uid}`} target="_blank" rel="noopener noreferrer" className="cursor-pointer" />
               }>
