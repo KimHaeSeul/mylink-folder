@@ -22,7 +22,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { SimpleEyeIcon } from "@/components/ui/simple-eye-icon";
 
 interface UserProfile {
   displayName: string;
@@ -282,12 +281,6 @@ export default function PublicProfilePage({
                         <span className="font-semibold text-foreground text-sm truncate w-full group-hover:text-primary transition-colors">
                           {link.title}
                         </span>
-                        {isOwner && (
-                          <div className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-md">
-                            <SimpleEyeIcon className="h-3 w-3 text-muted-foreground/80" />
-                            <span>{link.clickCount || 0}</span>
-                          </div>
-                        )}
                       </div>
                       
                       {/* 움직이는 호버 화살표 애니메이션 */}
