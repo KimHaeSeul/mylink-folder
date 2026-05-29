@@ -97,7 +97,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
                   onClick={onLogin}
                   className="rounded-full px-8 h-14 text-base font-extrabold shadow-lg shadow-primary/25 hover:shadow-primary/35 hover:scale-105 active:scale-95 transition-all duration-300"
                 >
-                  구글계정으로 로그인하기 ❤️
+                  구글계정으로 로그인하기 🤍
                 </Button>
               </div>
 
