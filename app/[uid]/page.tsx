@@ -191,42 +191,48 @@ export default function PublicProfilePage({
   }
 
   return (
-    <div className="flex min-h-svh flex-col items-center bg-background px-4 sm:px-8 md:px-16 lg:px-32 xl:px-48 pt-20 sm:pt-24 md:pt-28 lg:pt-32 pb-24">
+    <div className="relative flex min-h-svh flex-col items-center bg-background px-4 sm:px-8 md:px-16 lg:px-32 xl:px-48 pt-20 sm:pt-24 md:pt-28 lg:pt-32 pb-24 overflow-hidden">
+      
+      {/* 미려하고 세련된 배경 그래디언트 오버레이 */}
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,var(--color-primary-foreground),transparent_40%)] opacity-20" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -z-10 h-80 w-80 bg-gradient-to-tr from-primary/5 to-transparent blur-3xl rounded-full" />
+
       {/* Top Right CTA */}
       <div className="fixed top-4 right-4 sm:top-5 sm:right-6 md:top-6 md:right-8 lg:top-6 lg:right-12 xl:right-16 z-20">
         <Link
           href="/"
           className={cn(
             buttonVariants({ variant: "default", size: "sm" }),
-            "rounded-full shadow-md transition-transform hover:scale-105 active:scale-95"
+            "rounded-full shadow-lg shadow-primary/10 transition-all duration-300 hover:scale-105 active:scale-95 text-xs font-semibold px-4 py-2"
           )}
         >
           My-Link 만들기 🚀
         </Link>
       </div>
+
       {/* 프로필 헤더 */}
-      <div className="mb-10 flex flex-col items-center gap-4">
+      <div className="mb-10 flex flex-col items-center gap-4 text-center mt-6">
         {profile?.photoURL ? (
           <img
             src={profile.photoURL}
             alt="Profile"
-            className="h-20 w-20 rounded-full ring-4 ring-background shadow-xl"
+            className="h-24 w-24 rounded-full ring-4 ring-background shadow-2xl transition-transform duration-500 hover:scale-105"
           />
         ) : (
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted text-2xl font-bold text-muted-foreground ring-4 ring-background shadow-xl">
+          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-secondary/80 text-3xl font-black text-foreground ring-4 ring-background shadow-2xl">
             {profile?.profile?.name?.[0]?.toUpperCase() || profile?.displayName?.[0]?.toUpperCase() || "U"}
           </div>
         )}
-        <div className="text-center flex flex-col items-center">
-          <h1 className="text-2xl font-bold tracking-tight">
+        <div className="flex flex-col items-center">
+          <h1 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">
             {profile?.profile?.name || profile?.displayName || "User"}
           </h1>
           {(profile?.profile?.username || profile?.email) && (
-            <p className="text-sm text-muted-foreground mt-1">
+            <span className="text-sm font-bold text-primary/80 mt-1.5 block px-3 py-0.5 bg-primary/10 rounded-full">
               @{profile?.profile?.username || profile?.email?.split("@")[0]}
-            </p>
+            </span>
           )}
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="text-sm text-muted-foreground mt-3 max-w-sm leading-relaxed px-4">
             {profile?.profile?.bio || "Minimalist Link Management"}
           </p>
         </div>
@@ -235,8 +241,8 @@ export default function PublicProfilePage({
       {/* 링크 목록 (읽기 전용) */}
       <div className="flex w-full max-w-md flex-col gap-4">
         {links.length === 0 ? (
-          <div className="text-center text-muted-foreground py-8">
-            아직 추가된 링크가 없습니다.
+          <div className="text-center text-muted-foreground py-12 text-sm bg-card/40 rounded-2xl border border-dashed border-border/80">
+            아직 등록된 링크가 없습니다.
           </div>
         ) : (
           links.map((link) => {
@@ -252,10 +258,12 @@ export default function PublicProfilePage({
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => handleLinkClick(link.id)}
+                className="block w-full"
               >
-                <Card className="overflow-hidden transition-all duration-300 hover:scale-102 hover:shadow-md active:scale-98 cursor-pointer group">
+                <Card className="overflow-hidden transition-all duration-300 hover:scale-103 hover:shadow-md hover:border-primary/20 active:scale-98 cursor-pointer group border border-border/60 shadow-sm bg-card/90 backdrop-blur-sm">
                   <CardContent className="flex items-center gap-4 p-4">
-                    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary/50 p-2 overflow-hidden">
+                    {/* 파비콘 추출 박스 */}
+                    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary/60 p-2 overflow-hidden shadow-inner">
                       <img
                         src={
                           link.url.includes("blog.naver.com")
@@ -264,21 +272,26 @@ export default function PublicProfilePage({
                         }
                         alt={link.title}
                         className="h-full w-full object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "https://www.google.com/s2/favicons?domain=example.com&sz=128";
+                        }}
                       />
                     </div>
-                    <div className="flex flex-1 items-center justify-between">
-                      <div className="flex flex-col items-start gap-1">
-                        <span className="font-medium text-foreground">
+                    <div className="flex flex-1 items-center justify-between min-w-0">
+                      <div className="flex flex-col items-start gap-1 min-w-0 w-full text-left">
+                        <span className="font-semibold text-foreground text-sm truncate w-full group-hover:text-primary transition-colors">
                           {link.title}
                         </span>
                         {isOwner && (
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <SimpleEyeIcon className="h-3.5 w-3.5 text-muted-foreground/80" />
+                          <div className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-md">
+                            <SimpleEyeIcon className="h-3 w-3 text-muted-foreground/80" />
                             <span>{link.clickCount || 0}</span>
                           </div>
                         )}
                       </div>
-                      <span className="text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 text-lg">
+                      
+                      {/* 움직이는 호버 화살표 애니메이션 */}
+                      <span className="text-muted-foreground/80 text-base transform transition-all duration-300 group-hover:translate-x-1.5 group-hover:text-primary pl-2">
                         →
                       </span>
                     </div>
@@ -288,6 +301,13 @@ export default function PublicProfilePage({
             );
           })
         )}
+      </div>
+
+      {/* 하단 미니멀 크레딧 */}
+      <div className="text-center mt-16 mb-4">
+        <p className="text-[10px] text-muted-foreground/50 tracking-widest uppercase font-semibold">
+          POWERED BY MY-LINK
+        </p>
       </div>
 
     </div>
