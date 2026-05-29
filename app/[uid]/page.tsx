@@ -205,7 +205,7 @@ export default function PublicProfilePage({
             "rounded-full shadow-lg shadow-primary/10 transition-all duration-300 hover:scale-105 active:scale-95 text-xs font-semibold px-4 py-2"
           )}
         >
-          My-Link 만들기 🚀
+          구글계정으로 로그인하기 ❤️
         </Link>
       </div>
 
