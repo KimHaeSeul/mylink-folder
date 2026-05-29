@@ -13,6 +13,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowRight01Icon, PlusSignIcon } from "@hugeicons/core-free-icons";
 import { SimpleEyeIcon } from "@/components/ui/simple-eye-icon";
 import { cn } from "@/lib/utils";
+import LandingPage from "@/components/landing-page";
 import {
   Dialog,
   DialogContent,
@@ -578,11 +579,11 @@ export default function Page() {
     );
   }
 
-  return (
-    <div className="flex min-h-svh flex-col items-center bg-background px-4 sm:px-8 md:px-16 lg:px-32 xl:px-48 pt-20 sm:pt-24 md:pt-28 lg:pt-32 pb-24">
-      {/* Top Right Profile Dropdown - fixed */}
-      <div className="fixed top-4 right-4 sm:top-5 sm:right-6 md:top-6 md:right-8 lg:top-6 lg:right-12 xl:right-16 z-20">
-        {user && (
+  if (user) {
+    return (
+      <div className="flex min-h-svh flex-col items-center bg-background px-4 sm:px-8 md:px-16 lg:px-32 xl:px-48 pt-20 sm:pt-24 md:pt-28 lg:pt-32 pb-24">
+        {/* Top Right Profile Dropdown - fixed */}
+        <div className="fixed top-4 right-4 sm:top-5 sm:right-6 md:top-6 md:right-8 lg:top-6 lg:right-12 xl:right-16 z-20">
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
@@ -643,254 +644,236 @@ export default function Page() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        )}
       </div>
 
-      {user ? (
-        <>
-          {/* Profile Header */}
-          <div className="mb-10 flex flex-col items-center gap-4">
-            {user.photoURL ? (
-              <img src={user.photoURL} alt="Profile" className="h-20 w-20 rounded-full ring-4 ring-background shadow-xl" />
+      {/* Profile Header */}
+      <div className="mb-10 flex flex-col items-center gap-4">
+        {user.photoURL ? (
+          <img src={user.photoURL} alt="Profile" className="h-20 w-20 rounded-full ring-4 ring-background shadow-xl" />
+        ) : (
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted text-2xl font-bold text-muted-foreground ring-4 ring-background shadow-xl">
+            {profile?.name?.[0]?.toUpperCase() || user.email?.split("@")[0]?.[0]?.toUpperCase() || "U"}
+          </div>
+        )}
+        <div className="text-center flex flex-col items-center">
+          <h1 className="text-2xl font-bold tracking-tight">
+            {profileLoading ? (
+              <Skeleton className="h-8 w-32" />
             ) : (
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted text-2xl font-bold text-muted-foreground ring-4 ring-background shadow-xl">
-                {profile?.name?.[0]?.toUpperCase() || user.email?.split("@")[0]?.[0]?.toUpperCase() || "U"}
+              profile?.name || user.displayName || user.email?.split("@")[0] || "User"
+            )}
+          </h1>
+          <span className="text-sm text-muted-foreground mt-1 block">
+            {profileLoading ? (
+              <Skeleton className="h-4 w-24 mt-1" />
+            ) : (
+              `@${profile?.username || user.email?.split("@")[0]}`
+            )}
+          </span>
+          <span className="text-sm text-muted-foreground mt-0.5 block">
+            {profileLoading ? (
+              <Skeleton className="h-4 w-40 mt-1" />
+            ) : (
+              profile?.bio || "Minimalist Link Management"
+            )}
+          </span>
+          
+          {/* 프로필 수정 버튼 */}
+          <div className="mt-3">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="rounded-full gap-1.5 text-xs h-8 px-3 transition-all hover:scale-105 active:scale-95 shadow-sm"
+              onClick={() => setIsProfileEditOpen(true)}
+              disabled={profileLoading}
+            >
+              <span>프로필 수정</span>
+              <span className="text-xs">✎</span>
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Profile Edit Dialog */}
+      <Dialog open={isProfileEditOpen} onOpenChange={(open) => {
+        setIsProfileEditOpen(open);
+        if (!open) {
+          setProfileError("");
+          setUsernameError("");
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>프로필 수정</DialogTitle>
+            <DialogDescription>
+              공개 페이지에 노출될 프로필 정보를 수정합니다.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSaveProfile} className="space-y-4">
+            {profileError && (
+              <div className="text-destructive text-xs font-semibold bg-destructive/10 border border-destructive/20 p-3 rounded-lg text-center">
+                {profileError}
               </div>
             )}
-            <div className="text-center flex flex-col items-center">
-              <h1 className="text-2xl font-bold tracking-tight">
-                {profileLoading ? (
-                  <Skeleton className="h-8 w-32" />
-                ) : (
-                  profile?.name || user.displayName || user.email?.split("@")[0] || "User"
-                )}
-              </h1>
-              <span className="text-sm text-muted-foreground mt-1 block">
-                {profileLoading ? (
-                  <Skeleton className="h-4 w-24 mt-1" />
-                ) : (
-                  `@${profile?.username || user.email?.split("@")[0]}`
-                )}
-              </span>
-              <span className="text-sm text-muted-foreground mt-0.5 block">
-                {profileLoading ? (
-                  <Skeleton className="h-4 w-40 mt-1" />
-                ) : (
-                  profile?.bio || "Minimalist Link Management"
-                )}
-              </span>
-              
-              {/* 프로필 수정 버튼 */}
-              <div className="mt-3">
+            
+            <div className="grid gap-2">
+              <Label htmlFor="edit-username">Username (고유 주소용)</Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">@</span>
+                  <Input
+                    id="edit-username"
+                    className="pl-7"
+                    placeholder="username"
+                    value={editUsername}
+                    onChange={handleUsernameChange}
+                    onCompositionEnd={handleUsernameCompositionEnd}
+                    inputMode="url"
+                    lang="en"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                  />
+                </div>
                 <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="rounded-full gap-1.5 text-xs h-8 px-3 transition-all hover:scale-105 active:scale-95 shadow-sm"
-                  onClick={() => setIsProfileEditOpen(true)}
-                  disabled={profileLoading}
+                  type="button" 
+                  variant="secondary" 
+                  onClick={handleCheckUsername}
+                  disabled={isCheckingUsername || isUsernameChecked || !editUsername}
                 >
-                  <span>프로필 수정</span>
-                  <span className="text-xs">✎</span>
+                  {isCheckingUsername ? "확인 중..." : isUsernameChecked ? "확인 완료" : "중복 확인"}
                 </Button>
               </div>
+              {usernameError && (
+                <p className="text-destructive text-xs mt-0.5">{usernameError}</p>
+              )}
+              {isUsernameChecked && !usernameError && editUsername && (
+                <p className="text-green-600 text-xs mt-0.5">✓ 사용 가능한 Username입니다.</p>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                영문 소문자, 숫자, 언더바(_), 마침표(.)만 가능하며 고유한 주소로 사용됩니다.
+              </p>
             </div>
-          </div>
 
-          {/* Profile Edit Dialog */}
-          <Dialog open={isProfileEditOpen} onOpenChange={(open) => {
-            setIsProfileEditOpen(open);
-            if (!open) {
-              setProfileError("");
-              setUsernameError("");
-            }
-          }}>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name">이름</Label>
+              <Input
+                id="edit-name"
+                placeholder="이름 또는 닉네임"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                maxLength={30}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="edit-bio">소개글</Label>
+              <Input
+                id="edit-bio"
+                placeholder="나를 설명하는 한 줄 소개글"
+                value={editBio}
+                onChange={(e) => setEditBio(e.target.value)}
+                maxLength={80}
+              />
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="secondary" onClick={() => setIsProfileEditOpen(false)}>
+                취소
+              </Button>
+              <Button type="submit" disabled={isSavingProfile || (editUsername !== profile?.username && !isUsernameChecked)}>
+                {isSavingProfile ? "저장 중..." : "저장"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Link List */}
+      <div className="flex w-full max-w-md flex-col gap-4">
+        {isLoading ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i} className="overflow-hidden shadow-sm">
+              <CardContent className="flex items-center gap-4 p-4">
+                <Skeleton className="h-10 w-10 rounded-lg" />
+                <div className="flex flex-1 items-center justify-between">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-4 w-4 rounded-full" />
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          links.map((link) => (
+            <EditableLinkCard
+              key={link.id}
+              link={link}
+              onUpdate={handleUpdateLink}
+              onDelete={handleDeleteLink}
+            />
+          ))
+        )}
+
+
+        {/* Add Link Dialog */}
+        <div className="w-full mt-2">
+          <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
+            <DialogTrigger render={
+              <Button variant="outline" className="w-full border-dashed border-2 py-6 rounded-xl hover:scale-102 hover:shadow-md active:scale-98 transition-all">
+                <HugeiconsIcon icon={PlusSignIcon} size={16} className="mr-2" />
+                Add Link
+              </Button>
+            } />
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>프로필 수정</DialogTitle>
+                <DialogTitle>새 링크 추가</DialogTitle>
                 <DialogDescription>
-                  공개 페이지에 노출될 프로필 정보를 수정합니다.
+                  새로운 링크의 제목과 URL을 입력해주세요.
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSaveProfile} className="space-y-4">
-                {profileError && (
-                  <div className="text-destructive text-xs font-semibold bg-destructive/10 border border-destructive/20 p-3 rounded-lg text-center">
-                    {profileError}
+              <form onSubmit={handleAddLink}>
+                {error && (
+                  <div className="mt-2 text-destructive text-xs font-semibold bg-destructive/10 border border-destructive/20 p-3 rounded-lg text-center">
+                    {error}
                   </div>
                 )}
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-username">Username (고유 주소용)</Label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">@</span>
-                      <Input
-                        id="edit-username"
-                        className="pl-7"
-                        placeholder="username"
-                        value={editUsername}
-                        onChange={handleUsernameChange}
-                        onCompositionEnd={handleUsernameCompositionEnd}
-                        inputMode="url"
-                        lang="en"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="none"
-                        spellCheck={false}
-                      />
-                    </div>
-                    <Button 
-                      type="button" 
-                      variant="secondary" 
-                      onClick={handleCheckUsername}
-                      disabled={isCheckingUsername || isUsernameChecked || !editUsername}
-                    >
-                      {isCheckingUsername ? "확인 중..." : isUsernameChecked ? "확인 완료" : "중복 확인"}
-                    </Button>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="title">제목</Label>
+                    <Input
+                      id="title"
+                      placeholder="예: 나의 멋진 블로그"
+                      value={newTitle}
+                      onChange={(e) => setNewTitle(e.target.value)}
+                    />
                   </div>
-                  {usernameError && (
-                    <p className="text-destructive text-xs mt-0.5">{usernameError}</p>
-                  )}
-                  {isUsernameChecked && !usernameError && editUsername && (
-                    <p className="text-green-600 text-xs mt-0.5">✓ 사용 가능한 Username입니다.</p>
-                  )}
-                  <p className="text-[11px] text-muted-foreground">
-                    영문 소문자, 숫자, 언더바(_), 마침표(.)만 가능하며 고유한 주소로 사용됩니다.
-                  </p>
+                  <div className="grid gap-2">
+                    <Label htmlFor="url">URL</Label>
+                    <Input
+                      id="url"
+                      type="text"
+                      placeholder="예: google.com"
+                      value={newUrl}
+                      onChange={(e) => setNewUrl(e.target.value)}
+                    />
+                  </div>
                 </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-name">이름</Label>
-                  <Input
-                    id="edit-name"
-                    placeholder="이름 또는 닉네임"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    maxLength={30}
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-bio">소개글</Label>
-                  <Input
-                    id="edit-bio"
-                    placeholder="나를 설명하는 한 줄 소개글"
-                    value={editBio}
-                    onChange={(e) => setEditBio(e.target.value)}
-                    maxLength={80}
-                  />
-                </div>
-
-                <DialogFooter className="pt-2">
-                  <Button type="button" variant="secondary" onClick={() => setIsProfileEditOpen(false)}>
+                <DialogFooter>
+                  <Button type="button" variant="secondary" onClick={() => handleOpenChange(false)}>
                     취소
                   </Button>
-                  <Button type="submit" disabled={isSavingProfile || (editUsername !== profile?.username && !isUsernameChecked)}>
-                    {isSavingProfile ? "저장 중..." : "저장"}
-                  </Button>
+                  <Button type="submit">저장</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
-
-          {/* Link List */}
-          <div className="flex w-full max-w-md flex-col gap-4">
-            {isLoading ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <Card key={i} className="overflow-hidden shadow-sm">
-                  <CardContent className="flex items-center gap-4 p-4">
-                    <Skeleton className="h-10 w-10 rounded-lg" />
-                    <div className="flex flex-1 items-center justify-between">
-                      <Skeleton className="h-5 w-32" />
-                      <Skeleton className="h-4 w-4 rounded-full" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              links.map((link) => (
-                <EditableLinkCard
-                  key={link.id}
-                  link={link}
-                  onUpdate={handleUpdateLink}
-                  onDelete={handleDeleteLink}
-                />
-              ))
-            )}
-
-
-            {/* Add Link Dialog */}
-            <div className="w-full mt-2">
-              <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
-                <DialogTrigger render={
-                  <Button variant="outline" className="w-full border-dashed border-2 py-6 rounded-xl hover:scale-102 hover:shadow-md active:scale-98 transition-all">
-                    <HugeiconsIcon icon={PlusSignIcon} size={16} className="mr-2" />
-                    Add Link
-                  </Button>
-                } />
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>새 링크 추가</DialogTitle>
-                    <DialogDescription>
-                      새로운 링크의 제목과 URL을 입력해주세요.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <form onSubmit={handleAddLink}>
-                    {error && (
-                      <div className="mt-2 text-destructive text-xs font-semibold bg-destructive/10 border border-destructive/20 p-3 rounded-lg text-center">
-                        {error}
-                      </div>
-                    )}
-                    <div className="grid gap-4 py-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="title">제목</Label>
-                        <Input
-                          id="title"
-                          placeholder="예: 나의 멋진 블로그"
-                          value={newTitle}
-                          onChange={(e) => setNewTitle(e.target.value)}
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="url">URL</Label>
-                        <Input
-                          id="url"
-                          type="text"
-                          placeholder="예: google.com"
-                          value={newUrl}
-                          onChange={(e) => setNewUrl(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button type="button" variant="secondary" onClick={() => handleOpenChange(false)}>
-                        취소
-                      </Button>
-                      <Button type="submit">저장</Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
-        </>
-      ) : (
-        /* Logged Out State */
-        <div className="flex w-full max-w-md flex-col items-center justify-center py-20 text-center">
-          <div className="mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <span className="text-4xl font-bold">M</span>
-          </div>
-          <h2 className="mb-4 text-2xl font-bold tracking-tight">나만의 링크 프로필을 만들어보세요</h2>
-          <p className="mb-8 text-muted-foreground">
-            로그인하시면 나만의 링크 페이지를 만들고 관리할 수 있습니다.<br/>
-            불필요한 기능 없이 텍스트와 파비콘만으로 깔끔하게 완성해보세요.
-          </p>
-          <Button size="lg" onClick={handleLogin} className="w-full max-w-sm rounded-full h-14 text-base font-semibold shadow-lg hover:scale-105 active:scale-95 transition-all">
-            구글 계정으로 시작하기
-          </Button>
         </div>
-      )}
-
+      </div>
     </div>
   );
+}
+
+return <LandingPage onLogin={handleLogin} />;
 }
 
