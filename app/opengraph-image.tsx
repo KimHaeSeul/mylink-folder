@@ -55,6 +55,9 @@ export default async function Image() {
       ]
     : [];
 
+  // 핑크빛 이모지 리스트
+  const emojis = ["💖", "💞", "🌸", "🍒", "💕"];
+
   return new ImageResponse(
     (
       <div
@@ -65,143 +68,94 @@ export default async function Image() {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#ffffff", // 극강의 플랫 화이트 캔버스
+          backgroundColor: "#ffffff", // 완전 플랫 화이트 배경
           backgroundImage: "radial-gradient(circle at 50% -20%, rgba(244, 63, 94, 0.05), transparent 50%), radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.03), transparent 45%)",
-          color: "#18181b", // zinc-900 (다크 차콜)
+          color: "#f43f5e",
           fontFamily: "Pretendard, sans-serif",
           position: "relative",
           padding: "60px 80px",
         }}
       >
-        {/* 상단 엠블럼 마크 (연한 핑크 서클 + 장미색 M) */}
+        {/* 5행 8열 은은한 핑크 이모지 바둑판 격자 패턴 배경 */}
         <div
           style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "56px",
-            height: "56px",
-            borderRadius: "28px",
-            backgroundColor: "rgba(244, 63, 94, 0.08)",
-            marginBottom: "14px",
-            border: "1px solid rgba(244, 63, 94, 0.12)",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            padding: "36px 48px",
+            opacity: 0.12,
+            zIndex: 1,
           }}
         >
-          <span style={{ fontSize: "24px", fontWeight: 900, color: "#f43f5e", fontFamily: "sans-serif" }}>
-            M
-          </span>
+          {Array.from({ length: 5 }).map((_, rowIndex) => (
+            <div
+              key={rowIndex}
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "space-between",
+                width: "100%",
+              }}
+            >
+              {Array.from({ length: 8 }).map((_, colIndex) => (
+                <span
+                  key={colIndex}
+                  style={{
+                    fontSize: "30px",
+                    display: "flex",
+                  }}
+                >
+                  {emojis[(rowIndex + colIndex) % emojis.length]}
+                </span>
+              ))}
+            </div>
+          ))}
         </div>
 
-        {/* 차콜 단색 로고 타이틀 (장식성 그라디언트 걷어냄) */}
-        <h1
-          style={{
-            fontSize: "52px",
-            fontWeight: 800,
-            margin: 0,
-            color: "#18181b",
-            letterSpacing: "-0.03em",
-          }}
-        >
-          My-Link
-        </h1>
-
-        {/* 넓고 시원한 공백 여백 뒤에 오는 2단 수직 슬림 링크 바 */}
+        {/* 중앙 미니멀 둥근 사각 카드 보드 */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "12px",
-            marginTop: "48px",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "640px",
+            height: "260px",
+            backgroundColor: "#ffffff",
+            border: "2px solid rgba(244, 63, 94, 0.15)",
+            borderRadius: "32px",
+            boxShadow: "0 25px 60px rgba(244, 63, 94, 0.08)",
+            zIndex: 2,
           }}
         >
-          {/* 슬롯 1: GitHub */}
-          <div
+          {/* 극도로 깔끔하고 선명한 84px 초대형 메인 브랜드 타이틀 */}
+          <h1
             style={{
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              width: "420px",
-              height: "62px",
-              borderRadius: "9999px",
-              border: "1px solid #f4f4f5", // 극도로 옅은 플랫 테두리
-              backgroundColor: "#ffffff",
-              padding: "0 20px",
-              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.015)",
+              fontSize: "84px",
+              fontWeight: 900,
+              margin: 0,
+              color: "#f43f5e", // 깔끔하고 이쁜 체리 핑크 단색
+              letterSpacing: "-0.04em",
+              lineHeight: 1,
             }}
           >
-            {/* 파비콘 박스 */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "34px",
-                height: "34px",
-                borderRadius: "8px",
-                backgroundColor: "rgba(244, 63, 94, 0.03)",
-                marginRight: "14px",
-                overflow: "hidden",
-              }}
-            >
-              <img
-                src="https://www.google.com/s2/favicons?domain=github.com&sz=128"
-                alt="GitHub"
-                style={{ width: "18px", height: "18px", objectFit: "contain" }}
-              />
-            </div>
-            <span style={{ fontSize: "15px", fontWeight: 700, color: "#18181b", flex: 1 }}>GitHub 💻</span>
-            <span style={{ fontSize: "11px", color: "#a1a1aa", marginRight: "4px" }}>github.com</span>
-            <span style={{ fontSize: "13px", color: "#f43f5e", fontWeight: 700 }}>→</span>
-          </div>
-
-          {/* 슬롯 2: Instagram */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              width: "420px",
-              height: "62px",
-              borderRadius: "9999px",
-              border: "1px solid #f4f4f5",
-              backgroundColor: "#ffffff",
-              padding: "0 20px",
-              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.015)",
-            }}
-          >
-            {/* 파비콘 박스 */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "34px",
-                height: "34px",
-                borderRadius: "8px",
-                backgroundColor: "rgba(244, 63, 94, 0.03)",
-                marginRight: "14px",
-                overflow: "hidden",
-              }}
-            >
-              <img
-                src="https://www.google.com/s2/favicons?domain=instagram.com&sz=128"
-                alt="Instagram"
-                style={{ width: "18px", height: "18px", objectFit: "contain" }}
-              />
-            </div>
-            <span style={{ fontSize: "15px", fontWeight: 700, color: "#18181b", flex: 1 }}>Instagram 📸</span>
-            <span style={{ fontSize: "11px", color: "#a1a1aa", marginRight: "4px" }}>instagram.com</span>
-            <span style={{ fontSize: "13px", color: "#f43f5e", fontWeight: 700 }}>→</span>
-          </div>
+            My-Link
+          </h1>
         </div>
 
-        {/* 하단 미니멀 브랜드 네임 */}
+        {/* 하단 미니멀 크레딧 */}
         <div
           style={{
-            display: "flex", // satori 렌더링 호환성 준수
+            display: "flex", // satori 호환성
             position: "absolute",
-            bottom: 72,
-            opacity: 0.35,
+            bottom: 48,
+            opacity: 0.4,
+            zIndex: 2,
           }}
         >
           <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.15em", color: "#71717a" }}>

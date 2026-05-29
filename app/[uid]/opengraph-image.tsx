@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, doc, getDoc, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 
 // Route segment config
 export const runtime = "nodejs";
@@ -51,7 +51,6 @@ export default async function Image({
 }) {
   const { uid } = await params;
   let profileData: any = null;
-  let actualUid = "";
 
   // 1. Firestore에서 프로필 정보 실시간 fetch
   try {
@@ -65,14 +64,12 @@ export default async function Image({
     if (!querySnapshot.empty) {
       const userDoc = querySnapshot.docs[0];
       profileData = userDoc.data();
-      actualUid = userDoc.id;
     } else {
       // 1-2. 없을 경우 하위 호환성을 위해 ID(uid) 매칭 시도
       const userRef = doc(db, "users", uid);
       const userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
         profileData = userSnap.data();
-        actualUid = userSnap.id;
       }
     }
   } catch (e) {
@@ -83,36 +80,6 @@ export default async function Image({
   const name = profileData?.profile?.name || profileData?.displayName || "User";
   const username = profileData?.profile?.username || uid;
   const photoURL = profileData?.photoURL;
-
-  // 2. 사용자의 실제 최신 등록 링크 2개 실시간 fetch (그림 도식용)
-  let fetchedLinks: any[] = [];
-  if (actualUid) {
-    try {
-      const linksRef = collection(db, `users/${actualUid}/links`);
-      const linksQuery = query(linksRef, orderBy("createdAt", "desc"));
-      const linksSnap = await getDocs(linksQuery);
-      
-      linksSnap.docs.forEach((docSnap) => {
-        if (fetchedLinks.length < 2) {
-          const data = docSnap.data();
-          fetchedLinks.push({
-            title: data.title || "Link",
-            url: data.url || "",
-          });
-        }
-      });
-    } catch (linksErr) {
-      console.error("Error fetching links for OG:", linksErr);
-    }
-  }
-
-  // 등록된 실제 링크가 없을 경우, 미려한 샘플 도식용 가상 데이터 생성
-  if (fetchedLinks.length === 0) {
-    fetchedLinks = [
-      { title: "포트폴리오 ✨", url: "https://github.com" },
-      { title: "인스타그램 📸", url: "https://instagram.com" }
-    ];
-  }
 
   // 프로필 이미지 Base64로 변환 시도
   let avatarBase64: string | null = null;
@@ -152,6 +119,9 @@ export default async function Image({
       ]
     : [];
 
+  // 핑크빛 이모지 리스트
+  const emojis = ["💖", "💞", "🌸", "🍒", "💕"];
+
   return new ImageResponse(
     (
       <div
@@ -170,182 +140,152 @@ export default async function Image({
           padding: "60px 80px",
         }}
       >
-        {/* 아바타 영역 (크기와 선을 극도로 슬림화) */}
-        {avatarBase64 ? (
-          <img
-            src={avatarBase64}
-            alt="Avatar"
-            style={{
-              width: "80px",
-              height: "80px",
-              borderRadius: "40px",
-              border: "2px solid rgba(244, 63, 94, 0.12)",
-              objectFit: "cover",
-              marginBottom: "14px",
-            }}
-          />
-        ) : (
-          // 이니셜 아바타 Fallback (핑크 테마)
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "80px",
-              height: "80px",
-              borderRadius: "40px",
-              backgroundColor: "rgba(244, 63, 94, 0.06)",
-              border: "2px solid rgba(244, 63, 94, 0.15)",
-              marginBottom: "14px",
-            }}
-          >
-            <span
-              style={{
-                fontSize: "32px",
-                fontWeight: 800,
-                color: "#f43f5e",
-              }}
-            >
-              {name.charAt(0).toUpperCase()}
-            </span>
-          </div>
-        )}
-
-        {/* 유저명 / 이름 */}
-        <h2
-          style={{
-            fontSize: "36px",
-            fontWeight: 800,
-            color: "#18181b",
-            margin: 0,
-            textAlign: "center",
-            letterSpacing: "-0.02em",
-          }}
-        >
-          {name}
-        </h2>
-
-        {/* 사용자 고유 아이디 배지 (핑크) */}
+        {/* 5행 8열 은은한 핑크 이모지 바둑판 격자 패턴 배경 */}
         <div
           style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
             display: "flex",
-            alignItems: "center",
-            padding: "3px 10px",
-            backgroundColor: "rgba(244, 63, 94, 0.05)",
-            border: "1px solid rgba(244, 63, 94, 0.12)",
-            borderRadius: "9999px",
-            marginTop: "6px",
-            marginBottom: "36px",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            padding: "36px 48px",
+            opacity: 0.12,
+            zIndex: 1,
           }}
         >
-          <span
-            style={{
-              fontSize: "14px",
-              fontWeight: 700,
-              color: "#f43f5e",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            @{username}
-          </span>
+          {Array.from({ length: 5 }).map((_, rowIndex) => (
+            <div
+              key={rowIndex}
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "space-between",
+                width: "100%",
+              }}
+            >
+              {Array.from({ length: 8 }).map((_, colIndex) => (
+                <span
+                  key={colIndex}
+                  style={{
+                    fontSize: "30px",
+                    display: "flex",
+                  }}
+                >
+                  {emojis[(rowIndex + colIndex) % emojis.length]}
+                </span>
+              ))}
+            </div>
+          ))}
         </div>
 
-        {/* 2단 수직 슬림 링크 바 */}
+        {/* 중앙 미니멀 프로필 카드 보드 */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "12px",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "640px",
+            height: "320px",
+            backgroundColor: "#ffffff",
+            border: "2px solid rgba(244, 63, 94, 0.15)",
+            borderRadius: "32px",
+            boxShadow: "0 25px 60px rgba(244, 63, 94, 0.08)",
+            zIndex: 2,
+            padding: "36px",
           }}
         >
-          {fetchedLinks.map((link, index) => {
-            let hostname = "example.com";
-            try {
-              hostname = new URL(link.url).hostname;
-            } catch (e) {}
-
-            const faviconUrl = link.url.includes("blog.naver.com")
-              ? "https://blog.naver.com/favicon.ico"
-              : `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`;
-
-            return (
-              <div
-                key={index}
+          {/* 아바타 영역 (크기와 선을 극도로 슬림화) */}
+          {avatarBase64 ? (
+            <img
+              src={avatarBase64}
+              alt="Avatar"
+              style={{
+                width: "80px",
+                height: "80px",
+                borderRadius: "40px",
+                border: "3px solid rgba(244, 63, 94, 0.15)",
+                objectFit: "cover",
+                marginBottom: "16px",
+              }}
+            />
+          ) : (
+            // 이니셜 아바타 Fallback (핑크 테마)
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "80px",
+                height: "80px",
+                borderRadius: "40px",
+                backgroundColor: "rgba(244, 63, 94, 0.06)",
+                border: "3px solid rgba(244, 63, 94, 0.15)",
+                marginBottom: "16px",
+              }}
+            >
+              <span
                 style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  width: "420px",
-                  height: "62px",
-                  borderRadius: "9999px",
-                  border: "1px solid #f4f4f5", // 옅은 플랫 테두리
-                  backgroundColor: "#ffffff",
-                  padding: "0 20px",
-                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.015)",
+                  fontSize: "32px",
+                  fontWeight: 800,
+                  color: "#f43f5e",
                 }}
               >
-                {/* 파비콘 박스 */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: "34px",
-                    height: "34px",
-                    borderRadius: "8px",
-                    backgroundColor: "rgba(244, 63, 94, 0.03)",
-                    marginRight: "14px",
-                    overflow: "hidden",
-                  }}
-                >
-                  <img
-                    src={faviconUrl}
-                    alt={link.title}
-                    style={{ width: "18px", height: "18px", objectFit: "contain" }}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = "https://www.google.com/s2/favicons?domain=example.com&sz=128";
-                    }}
-                  />
-                </div>
-                {/* 타이틀 및 호스트네임 */}
-                <span
-                  style={{
-                    fontSize: "15px",
-                    fontWeight: 700,
-                    color: "#18181b",
-                    flex: 1,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {link.title}
-                </span>
-                <span
-                  style={{
-                    fontSize: "11px",
-                    color: "#a1a1aa",
-                    marginRight: "4px",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {hostname}
-                </span>
-                <span style={{ fontSize: "13px", color: "#f43f5e", fontWeight: 700 }}>→</span>
-              </div>
-            );
-          })}
+                {name.charAt(0).toUpperCase()}
+              </span>
+            </div>
+          )}
+
+          {/* 유저명 / 이름 */}
+          <h2
+            style={{
+              fontSize: "38px",
+              fontWeight: 800,
+              color: "#18181b",
+              margin: 0,
+              textAlign: "center",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            {name}
+          </h2>
+
+          {/* 사용자 고유 아이디 배지 (핑크) */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              padding: "4px 12px",
+              backgroundColor: "rgba(244, 63, 94, 0.05)",
+              border: "1px solid rgba(244, 63, 94, 0.15)",
+              borderRadius: "9999px",
+              marginTop: "10px",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "15px",
+                fontWeight: 700,
+                color: "#f43f5e",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              @{username}
+            </span>
+          </div>
         </div>
 
         {/* 하단 미니멀 브랜드 네임 */}
         <div
           style={{
-            display: "flex", // satori 렌더링 호환성 준수
+            display: "flex", // satori 호환성
             position: "absolute",
-            bottom: 72,
-            opacity: 0.35,
+            bottom: 48,
+            opacity: 0.4,
+            zIndex: 2,
           }}
         >
           <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.15em", color: "#71717a" }}>
