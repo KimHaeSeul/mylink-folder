@@ -65,122 +65,146 @@ export default async function Image() {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#09090b", // zinc-950
-          backgroundImage: "radial-gradient(circle at 50% -20%, rgba(124, 58, 237, 0.15), transparent 50%), radial-gradient(circle at 10% 90%, rgba(37, 99, 235, 0.08), transparent 40%)",
-          color: "#ffffff",
+          backgroundColor: "#ffffff", // 극강의 플랫 화이트 캔버스
+          backgroundImage: "radial-gradient(circle at 50% -20%, rgba(244, 63, 94, 0.05), transparent 50%), radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.03), transparent 45%)",
+          color: "#18181b", // zinc-900 (다크 차콜)
           fontFamily: "Pretendard, sans-serif",
           position: "relative",
           padding: "60px 80px",
         }}
       >
-        {/* 미니멀한 격자 선 장식 효과 (CSS 선 조합) */}
-        <div
-          style={{
-            position: "absolute",
-            top: 40,
-            left: 40,
-            right: 40,
-            bottom: 40,
-            border: "1px solid rgba(255, 255, 255, 0.03)",
-            borderRadius: "32px",
-            display: "flex",
-          }}
-        />
-
-        {/* 상단 장식 배지 */}
+        {/* 상단 엠블럼 마크 (연한 핑크 서클 + 장미색 M) */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "8px",
-            padding: "8px 16px",
-            backgroundColor: "rgba(124, 58, 237, 0.1)",
-            border: "1px solid rgba(124, 58, 237, 0.2)",
-            borderRadius: "9999px",
-            marginBottom: "36px",
+            justifyContent: "center",
+            width: "56px",
+            height: "56px",
+            borderRadius: "28px",
+            backgroundColor: "rgba(244, 63, 94, 0.08)",
+            marginBottom: "14px",
+            border: "1px solid rgba(244, 63, 94, 0.12)",
           }}
         >
-          <span style={{ fontSize: "14px", fontWeight: 700, color: "#a78bfa", letterSpacing: "0.05em" }}>
-            MY-LINK.COM
-          </span>
-          <span style={{ color: "rgba(167, 139, 250, 0.4)", fontSize: "14px" }}>|</span>
-          <span style={{ fontSize: "13px", fontWeight: 400, color: "#e4e4e7" }}>
-            가장 심플한 프로필
+          <span style={{ fontSize: "24px", fontWeight: 900, color: "#f43f5e", fontFamily: "sans-serif" }}>
+            M
           </span>
         </div>
 
-        {/* 메인 콘텐츠 카드 */}
+        {/* 차콜 단색 로고 타이틀 (장식성 그라디언트 걷어냄) */}
+        <h1
+          style={{
+            fontSize: "52px",
+            fontWeight: 800,
+            margin: 0,
+            color: "#18181b",
+            letterSpacing: "-0.03em",
+          }}
+        >
+          My-Link
+        </h1>
+
+        {/* 넓고 시원한 공백 여백 뒤에 오는 2단 수직 슬림 링크 바 */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "800px",
-            padding: "48px",
-            backgroundColor: "rgba(255, 255, 255, 0.02)",
-            border: "1px solid rgba(255, 255, 255, 0.06)",
-            borderRadius: "24px",
-            boxShadow: "0 20px 40px rgba(0, 0, 0, 0.3)",
+            gap: "12px",
+            marginTop: "48px",
           }}
         >
-          {/* 타이틀 로고 */}
-          <h1
+          {/* 슬롯 1: GitHub */}
+          <div
             style={{
-              fontSize: "64px",
-              fontWeight: 800,
-              margin: 0,
-              background: "linear-gradient(to bottom, #ffffff 30%, #a1a1aa 100%)",
-              backgroundClip: "text",
-              color: "transparent",
-              letterSpacing: "-0.03em",
-              marginBottom: "16px",
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              width: "420px",
+              height: "62px",
+              borderRadius: "9999px",
+              border: "1px solid #f4f4f5", // 극도로 옅은 플랫 테두리
+              backgroundColor: "#ffffff",
+              padding: "0 20px",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.015)",
             }}
           >
-            My-Link
-          </h1>
+            {/* 파비콘 박스 */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "34px",
+                height: "34px",
+                borderRadius: "8px",
+                backgroundColor: "rgba(244, 63, 94, 0.03)",
+                marginRight: "14px",
+                overflow: "hidden",
+              }}
+            >
+              <img
+                src="https://www.google.com/s2/favicons?domain=github.com&sz=128"
+                alt="GitHub"
+                style={{ width: "18px", height: "18px", objectFit: "contain" }}
+              />
+            </div>
+            <span style={{ fontSize: "15px", fontWeight: 700, color: "#18181b", flex: 1 }}>GitHub 💻</span>
+            <span style={{ fontSize: "11px", color: "#a1a1aa", marginRight: "4px" }}>github.com</span>
+            <span style={{ fontSize: "13px", color: "#f43f5e", fontWeight: 700 }}>→</span>
+          </div>
 
-          {/* 슬로건 및 설명 */}
-          <p
+          {/* 슬롯 2: Instagram */}
+          <div
             style={{
-              fontSize: "24px",
-              fontWeight: 500,
-              color: "#f4f4f5",
-              margin: 0,
-              textAlign: "center",
-              lineHeight: 1.4,
-              letterSpacing: "-0.01em",
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              width: "420px",
+              height: "62px",
+              borderRadius: "9999px",
+              border: "1px solid #f4f4f5",
+              backgroundColor: "#ffffff",
+              padding: "0 20px",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.015)",
             }}
           >
-            텍스트와 파비콘으로만 완성하는
-          </p>
-          <p
-            style={{
-              fontSize: "24px",
-              fontWeight: 700,
-              color: "#a78bfa", // primary 계열 연보라
-              margin: "4px 0 0 0",
-              textAlign: "center",
-              lineHeight: 1.4,
-              letterSpacing: "-0.01em",
-            }}
-          >
-            가장 현대적이고 미니멀한 링크 프로필
-          </p>
+            {/* 파비콘 박스 */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "34px",
+                height: "34px",
+                borderRadius: "8px",
+                backgroundColor: "rgba(244, 63, 94, 0.03)",
+                marginRight: "14px",
+                overflow: "hidden",
+              }}
+            >
+              <img
+                src="https://www.google.com/s2/favicons?domain=instagram.com&sz=128"
+                alt="Instagram"
+                style={{ width: "18px", height: "18px", objectFit: "contain" }}
+              />
+            </div>
+            <span style={{ fontSize: "15px", fontWeight: 700, color: "#18181b", flex: 1 }}>Instagram 📸</span>
+            <span style={{ fontSize: "11px", color: "#a1a1aa", marginRight: "4px" }}>instagram.com</span>
+            <span style={{ fontSize: "13px", color: "#f43f5e", fontWeight: 700 }}>→</span>
+          </div>
         </div>
 
-        {/* 하단 크레딧 */}
+        {/* 하단 미니멀 브랜드 네임 */}
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
+            display: "flex", // satori 렌더링 호환성 준수
             position: "absolute",
             bottom: 72,
-            opacity: 0.5,
+            opacity: 0.35,
           }}
         >
-          <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.2em", color: "#a1a1aa" }}>
+          <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.15em", color: "#71717a" }}>
             POWERED BY MY-LINK
           </span>
         </div>
